@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Curved Highway Racing</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#111;
+    font-family:Arial;
+    text-align:center;
+    color:#00ffff;
+}
+
+h1{margin:5px;}
+
+#gameArea{
+    width:400px;
+    height:650px;
+    margin:10px auto;
+    position:relative;
+    overflow:hidden;
+    background:#000;
+    border:3px solid #00ffff;
+}
+
+.road{
+    position:absolute;
+    width:300px;
+    height:650px;
+    left:50px;
+    background:linear-gradient(#222,#111);
+}
+
+.lane{
+    position:absolute;
+    width:4px;
+    height:100px;
+    background:white;
+    left:50%;
+    transform:translateX(-50%);
+}
+
+.car{
+    width:50px;
+    height:90px;
+    position:absolute;
+    bottom:40px;
+    left:175px;
+    background:linear-gradient(red,orange);
+    border-radius:10px;
+    box-shadow:0 0 10px red;
+}
+
+.enemy{
+    width:50px;
+    height:90px;
+    position:absolute;
+    background:linear-gradient(yellow,orange);
+    border-radius:10px;
+}
+
+#score{
+    font-size:18px;
+}
+</style>
+</head>
+<body>
+
+<h1>🚗 Curved Highway Racing</h1>
+<p id="score">Score: 0</p>
+<button onclick="startGame()">Start</button>
+
+<div id="gameArea">
+<div class="road" id="road"></div>
+</div>
+
+<script>
+const gameArea=document.getElementById("gameArea");
+const road=document.getElementById("road");
+const scoreDisplay=document.getElementById("score");
+
+let player={x:175,speed:5,score:0};
+let keys={left:false,right:false};
+let animation;
+let curveOffset=0;
+let curveDirection=1;
+
+document.addEventListener("keydown",e=>{
+    if(e.key==="ArrowLeft") keys.left=true;
+    if(e.key==="ArrowRight") keys.right=true;
+});
+document.addEventListener("keyup",e=>{
+    if(e.key==="ArrowLeft") keys.left=false;
+    if(e.key==="ArrowRight") keys.right=false;
+});
+
+function startGame(){
+    gameArea.querySelectorAll(".enemy,.car,.lane").forEach(e=>e.remove());
+    player={x:175,speed:5,score:0};
+    curveOffset=0;
+
+    let car=document.createElement("div");
+    car.classList.add("car");
+    gameArea.appendChild(car);
+
+    for(let i=0;i<3;i++) createEnemy();
+
+    for(let i=0;i<6;i++){
+        let lane=document.createElement("div");
+        lane.classList.add("lane");
+        lane.style.top=(i*120)+"px";
+        road.appendChild(lane);
+    }
+
+    animation=requestAnimationFrame(playGame);
+}
+
+function createEnemy(){
+    let enemy=document.createElement("div");
+    enemy.classList.add("enemy");
+    enemy.style.top="-100px";
+    enemy.style.left=Math.random()*250+75+"px";
+    gameArea.appendChild(enemy);
+}
+
+function playGame(){
+    let car=document.querySelector(".car");
+
+    // Curve physics
+    curveOffset += curveDirection * 0.5;
+    if(curveOffset > 40 || curveOffset < -40){
+        curveDirection *= -1;
+    }
+
+    road.style.left=(50 + curveOffset)+"px";
+
+    // Player movement
+    if(keys.left) player.x-=player.speed;
+    if(keys.right) player.x+=player.speed;
+
+    // Simulate road pull effect
+    player.x += curveDirection * 0.3;
+
+    if(player.x<road.offsetLeft) player.x=road.offsetLeft;
+    if(player.x>road.offsetLeft+250) player.x=road.offsetLeft+250;
+
+    car.style.left=player.x+"px";
+
+    moveEnemies(car);
+
+    player.score++;
+    scoreDisplay.innerText="Score: "+player.score;
+
+    animation=requestAnimationFrame(playGame);
+}
+
+function moveEnemies(car){
+    document.querySelectorAll(".enemy").forEach(enemy=>{
+        let top=enemy.offsetTop;
+        if(top>650){
+            enemy.remove();
+            createEnemy();
+        }
+        enemy.style.top=(top+player.speed)+"px";
+
+        if(isCollide(car,enemy)){
+            endGame();
+        }
+    });
+}
+
+function isCollide(a,b){
+    let aRect=a.getBoundingClientRect();
+    let bRect=b.getBoundingClientRect();
+    return !(aRect.bottom<bRect.top ||
+             aRect.top>bRect.bottom ||
+             aRect.right<bRect.left ||
+             aRect.left>bRect.right);
+}
+
+function endGame(){
+    cancelAnimationFrame(animation);
+    alert("💥 Game Over! Score: "+player.score);
+}
+</script>
+
+</body>
+</html>
